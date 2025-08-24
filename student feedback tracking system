@@ -1,0 +1,231 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_COURSE_LEN 20
+#define MAX_COMMENT_LEN 100
+#define MAX_COURSES 100
+
+// Structure for feedback entry (linked list node)
+typedef struct FeedbackNode {
+    int studentID;
+    char courseCode[MAX_COURSE_LEN];
+    int rating; // 1-5
+    char comments[MAX_COMMENT_LEN];
+    struct FeedbackNode* next;
+} FeedbackNode;
+
+// Function prototypes
+FeedbackNode* createNode(int studentID, const char* courseCode, int rating, const char* comments);
+void addFeedback(FeedbackNode** head, int studentID, const char* courseCode, int rating, const char* comments);
+void searchByStudent(FeedbackNode* head, int studentID);
+void searchByCourse(FeedbackNode* head, const char* courseCode);
+void averageRatingPerCourse(FeedbackNode* head);
+void reverseList(FeedbackNode** head);
+void displayFeedbackList(FeedbackNode* head);
+FeedbackNode* cloneList(FeedbackNode* head);
+void freeList(FeedbackNode* head);
+
+int main() {
+    FeedbackNode* feedbackList = NULL;
+
+    // Sample data (add feedback entries)
+    addFeedback(&feedbackList, 101, "CS101", 4, "Good course");
+    addFeedback(&feedbackList, 102, "CS101", 5, "Excellent!");
+    addFeedback(&feedbackList, 103, "MA101", 3, "Average content");
+    addFeedback(&feedbackList, 101, "MA101", 4, "Well structured");
+    addFeedback(&feedbackList, 104, "CS101", 2, "Needs improvement");
+    addFeedback(&feedbackList, 105, "PH101", 5, "Very interesting");
+
+    // Display all feedback
+    printf("All Feedback:\n");
+    displayFeedbackList(feedbackList);
+    printf("\n");
+
+    // Search feedback by studentID
+    searchByStudent(feedbackList, 101);
+    printf("\n");
+
+    // Search feedback by courseCode
+    searchByCourse(feedbackList, "CS101");
+    printf("\n");
+
+    // Calculate and display average rating per course
+    averageRatingPerCourse(feedbackList);
+    printf("\n");
+
+    // Reverse and display feedback list
+    printf("Reversed Feedback List:\n");
+    reverseList(&feedbackList);
+    displayFeedbackList(feedbackList);
+    printf("\n");
+
+    // Clone feedback list for reporting
+    FeedbackNode* clonedList = cloneList(feedbackList);
+    printf("Cloned Feedback List:\n");
+    displayFeedbackList(clonedList);
+    printf("\n");
+
+    // Free allocated memory
+    freeList(feedbackList);
+    freeList(clonedList);
+
+    return 0;
+}
+
+// Create new node
+FeedbackNode* createNode(int studentID, const char* courseCode, int rating, const char* comments) {
+    FeedbackNode* node = (FeedbackNode*)malloc(sizeof(FeedbackNode));
+    if(node == NULL) {
+        printf("Memory allocation failed\n");
+        exit(1);
+    }
+    node->studentID = studentID;
+    strncpy(node->courseCode, courseCode, MAX_COURSE_LEN);
+    node->courseCode[MAX_COURSE_LEN - 1] = '\0'; // Safety null-termination
+    node->rating = rating;
+    strncpy(node->comments, comments, MAX_COMMENT_LEN);
+    node->comments[MAX_COMMENT_LEN - 1] = '\0'; // Safety null-termination
+    node->next = NULL;
+    return node;
+}
+
+// Add feedback at end of list
+void addFeedback(FeedbackNode** head, int studentID, const char* courseCode, int rating, const char* comments) {
+    FeedbackNode* newNode = createNode(studentID, courseCode, rating, comments);
+    if(*head == NULL) {
+        *head = newNode;
+    } else {
+        FeedbackNode* temp = *head;
+        while(temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = newNode;
+    }
+}
+
+// Search by student ID
+void searchByStudent(FeedbackNode* head, int studentID) {
+    printf("Feedback by student ID %d:\n", studentID);
+    int found = 0;
+    FeedbackNode* temp = head;
+    while(temp != NULL) {
+        if(temp->studentID == studentID) {
+            printf("Course: %s, Rating: %d, Comments: %s\n",
+                   temp->courseCode, temp->rating, temp->comments);
+            found = 1;
+        }
+        temp = temp->next;
+    }
+    if(!found) {
+        printf("No feedback found for student ID %d.\n", studentID);
+    }
+}
+
+// Search by course code
+void searchByCourse(FeedbackNode* head, const char* courseCode) {
+    printf("Feedback for course %s:\n", courseCode);
+    int found = 0;
+    FeedbackNode* temp = head;
+    while(temp != NULL) {
+        if(strcmp(temp->courseCode, courseCode) == 0) {
+            printf("Student ID: %d, Rating: %d, Comments: %s\n",
+                   temp->studentID, temp->rating, temp->comments);
+            found = 1;
+        }
+        temp = temp->next;
+    }
+    if(!found) {
+        printf("No feedback found for course %s.\n", courseCode);
+    }
+}
+
+// Calculate average rating per course using arrays
+void averageRatingPerCourse(FeedbackNode* head) {
+    char courses[MAX_COURSES][MAX_COURSE_LEN];
+    int totalRatings[MAX_COURSES] = {0};
+    int counts[MAX_COURSES] = {0};
+    int courseCount = 0;
+
+    FeedbackNode* temp = head;
+    while(temp != NULL) {
+        int index = -1;
+        for(int i = 0; i < courseCount; i++) {
+            if(strcmp(courses[i], temp->courseCode) == 0) {
+                index = i;
+                break;
+            }
+        }
+        if(index == -1) {
+            if(courseCount < MAX_COURSES) {
+                strncpy(courses[courseCount], temp->courseCode, MAX_COURSE_LEN);
+                courses[courseCount][MAX_COURSE_LEN - 1] = '\0';
+                totalRatings[courseCount] = temp->rating;
+                counts[courseCount] = 1;
+                courseCount++;
+            } else {
+                printf("Max course limit reached!\n");
+                return;
+            }
+        } else {
+            totalRatings[index] += temp->rating;
+            counts[index]++;
+        }
+        temp = temp->next;
+    }
+
+    printf("Average rating per course:\n");
+    for(int i = 0; i < courseCount; i++) {
+        double avg = (double)totalRatings[i] / counts[i];
+        printf("Course %s : %.2f\n", courses[i], avg);
+    }
+}
+
+// Reverse linked list
+void reverseList(FeedbackNode** head) {
+    FeedbackNode *prev = NULL, *current = *head, *next = NULL;
+    while(current != NULL) {
+        next = current->next;
+        current->next = prev;
+        prev = current;
+        current = next;
+    }
+    *head = prev;
+}
+
+// Display all feedbacks
+void displayFeedbackList(FeedbackNode* head) {
+    FeedbackNode* temp = head;
+    while(temp != NULL) {
+        printf("Student ID: %d, Course: %s, Rating: %d, Comments: %s\n",
+               temp->studentID, temp->courseCode, temp->rating, temp->comments);
+        temp = temp->next;
+    }
+}
+
+// Clone the linked list (deep copy)
+FeedbackNode* cloneList(FeedbackNode* head) {
+    if(head == NULL) return NULL;
+    FeedbackNode *newHead = createNode(head->studentID, head->courseCode, head->rating, head->comments);
+    FeedbackNode *origCurrent = head->next;
+    FeedbackNode *cloneCurrent = newHead;
+
+    while(origCurrent != NULL) {
+        FeedbackNode* newNode = createNode(origCurrent->studentID, origCurrent->courseCode,
+                                          origCurrent->rating, origCurrent->comments);
+        cloneCurrent->next = newNode;
+        cloneCurrent = newNode;
+        origCurrent = origCurrent->next;
+    }
+    return newHead;
+}
+
+// Free linked list
+void freeList(FeedbackNode* head) {
+    FeedbackNode* temp;
+    while(head != NULL) {
+        temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
